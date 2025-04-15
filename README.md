@@ -3,6 +3,8 @@
 Demo implementation of a [Model Context Protocol](https://modelcontextprotocol.io/) server
 allowing an LLM to interact with ERDDAP search, metadata, and tabledap services.
 
+![Example usage](example.png)
+
 ## Usage
 
 Make sure you have `uv` installed, then add the MCP server to the desired MCP capable client.
