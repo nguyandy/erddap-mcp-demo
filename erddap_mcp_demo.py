@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from mcp.server.fastmcp import FastMCP
 import httpx
 import urllib.parse
@@ -129,7 +129,7 @@ async def list_dataset_variables(erddap_url: str, dataset_id: str) -> str:
 
 @mcp.tool()
 async def get_dataset_variable_data(erddap_url: str, dataset_id: str, variable_name: str,
-                                    start_time: datetime, end_time: datetime = datetime.now(),
+                                    start_time: datetime, end_time: datetime = datetime.now(timezone.utc),
                                     exclude_nans: bool = True) -> str:
     """Get data for a variable in a dataset served by an ERDDAP server. Time is always included in the results."""
     url = f"{erddap_url}/tabledap/{dataset_id}.csvp"
