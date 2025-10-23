@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERDDAP MCP LLM Demo</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif;
+      background-color: #ffffff;
+      color: #1a1a1a;
+      --primary: #003478;
+      --primary-light: #0047a3;
+      --primary-dark: #002550;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--page-bg, #ffffff);
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: clamp(1.8rem, 2vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--primary);
+    }
+
+    p.description {
+      margin-top: 0;
+      margin-bottom: 32px;
+      color: #666;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    section.panel {
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    section.panel h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    section.panel h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    form#chat-form {
+      display: grid;
+      gap: 20px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      font-weight: 500;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea,
+    select {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #d0d0d0;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      background-color: #fafafa;
+      color: #1a1a1a;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      font-family: inherit;
+    }
+
+    input[type="text"]:hover,
+    input[type="password"]:hover,
+    textarea:hover,
+    select:hover {
+      border-color: #bbb;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background-color: #fff;
+      box-shadow: 0 0 0 2px rgba(0, 52, 120, 0.1);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    button {
+      border-radius: 6px;
+      border: 1px solid var(--primary);
+      padding: 10px 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--primary);
+      color: #fff;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-light);
+      border-color: var(--primary-light);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 52, 120, 0.2);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: rgba(0, 52, 120, 0.05);
+      border-color: var(--primary-light);
+      color: var(--primary-light);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: #999;
+      min-height: 1.2em;
+      font-weight: 500;
+    }
+
+    .transcript {
+      max-height: min(60vh, 500px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-right: 8px;
+    }
+
+    .transcript::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .transcript::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .transcript::-webkit-scrollbar-thumb {
+      background: #d0d0d0;
+      border-radius: 3px;
+    }
+
+    .transcript::-webkit-scrollbar-thumb:hover {
+      background: #999;
+    }
+
+    .message {
+      border-radius: 8px;
+      padding: 12px 16px;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      position: relative;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .message.user {
+      margin-left: auto;
+      background: var(--primary);
+      color: #fff;
+      border: 1px solid var(--primary-dark);
+      max-width: 85%;
+    }
+
+    .message.assistant {
+      margin-right: auto;
+      max-width: 85%;
+      background: #f9f9f9;
+      border: 1px solid rgba(0, 52, 120, 0.1);
+    }
+
+    .message.tool {
+      margin-right: auto;
+      max-width: 85%;
+      background: rgba(0, 52, 120, 0.05);
+      border: 1px solid rgba(0, 52, 120, 0.15);
+      border-left: 3px solid var(--primary);
+    }
+
+    .message.debug {
+      font-size: 0.8rem;
+      background: #f0f0f0;
+      color: #555;
+    }
+
+    .message h4 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    pre {
+      background: #f0f0f0;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      margin: 8px 0 0 0;
+      border: 1px solid #e0e0e0;
+    }
+
+    code {
+      font-family: "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+      font-size: 0.8rem;
+    }
+
+    .tips ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #555;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+
+    .tips li {
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding: 24px 16px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .message.user,
+      .message.assistant,
+      .message.tool {
+        max-width: 100%;
+      }
+
+      .button-row {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ERDDAP MCP LLM Demo</h1>
+    <p class="description">
+      Chat with an OpenAI model that can call the ERDDAP MCP server to explore datasets. Submit a question and the
+      assistant will use ERDDAP tools as needed. Default ERDDAP endpoint is
+      <code>https://erddap.maracoos.org/erddap</code>.
+    </p>
+
+    <section class="panel">
+      <form id="chat-form">
+        <div class="grid two">
+          <label>
+            OpenAI API Key
+            <input id="api-key" type="password" placeholder="sk-..." autocomplete="off" required>
+          </label>
+
+          <label>
+            OpenAI Model
+            <input id="model" type="text" value="gpt-4.1-mini" autocomplete="off">
+          </label>
+        </div>
+
+        <div class="grid two">
+          <label>
+            ERDDAP URL
+            <input id="erddap-url" type="text" value="https://erddap.maracoos.org/erddap" autocomplete="off">
+          </label>
+
+          <label>
+            MCP Server URL
+            <input id="mcp-url" type="text" value="https://mapapps.oceansmap.com/erddap-mcp" autocomplete="off">
+          </label>
+        </div>
+
+        <label>
+          System Prompt (optional)
+          <textarea id="system-prompt" placeholder="You are an ERDDAP research assistant..."></textarea>
+        </label>
+
+        <label>
+          User Prompt
+          <textarea id="user-input" placeholder="Ask about datasets, variables, or time ranges..." required></textarea>
+        </label>
+
+        <div class="button-row">
+          <button id="send-button" type="submit">Send</button>
+          <button id="clear-button" type="button" class="secondary">Clear Conversation</button>
+          <span class="status" id="status"></span>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0;margin-bottom:12px;font-size:1.1rem;font-weight:600;">Transcript</h2>
+      <div id="transcript" class="transcript" aria-live="polite"></div>
+    </section>
+
+    <section class="panel tips">
+      <h3 style="margin-top:0;margin-bottom:10px;font-size:1rem;font-weight:600;">Quick Tips</h3>
+      <ul>
+        <li>The assistant can search datasets, list variables, and fetch data through ERDDAP MCP tools.</li>
+        <li>Set a custom ERDDAP base URL if you want to explore a different ERDDAP instance.</li>
+        <li>When the model references datasets, look for dataset IDs and links in the assistant replies.</li>
+        <li>Use "Clear Conversation" to reset context and start over.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const defaultSystemPrompt = `You are a helpful assistant that explores ERDDAP datasets for the user. Prefer the configured ERDDAP URL unless the user asks for another. Summarize findings clearly, cite dataset IDs, and link to ERDDAP resources when appropriate.`;
+
+    const transcriptEl = document.getElementById("transcript");
+    const formEl = document.getElementById("chat-form");
+    const modelInput = document.getElementById("model");
+    const erddapInput = document.getElementById("erddap-url");
+    const mcpInput = document.getElementById("mcp-url");
+    const systemPromptInput = document.getElementById("system-prompt");
+    const userInput = document.getElementById("user-input");
+    const sendButton = document.getElementById("send-button");
+    const clearButton = document.getElementById("clear-button");
+    const statusEl = document.getElementById("status");
+
+    const state = {
+      messages: []
+    };
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderMessage(role, htmlContent) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `message ${role}`;
+      wrapper.innerHTML = htmlContent;
+      transcriptEl.appendChild(wrapper);
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    }
+
+    function renderToolEvent(title, content) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "message tool";
+      wrapper.innerHTML = `<h4>${title}</h4>${content}`;
+      transcriptEl.appendChild(wrapper);
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    }
+
+    function formatContentItems(content = []) {
+      return content.map((item) => {
+        if (!item || typeof item !== "object") {
+          return `<pre>${escapeHtml(String(item))}</pre>`;
+        }
+
+        switch (item.type) {
+          case "output_text":
+          case "input_text":
+            return `<div>${escapeHtml(item.text ?? "")}</div>`;
+          case "tool_call":
+          case "tool_use": {
+            const name = escapeHtml(item.name ?? item.tool_name ?? "tool");
+            const args = escapeHtml(JSON.stringify(item.input ?? item.arguments ?? {}, null, 2));
+            return `<div><strong>Tool Request:</strong> ${name}<pre>${args}</pre></div>`;
+          }
+          case "tool_result":
+          case "tool_response": {
+            const label = escapeHtml(item.tool_call_id ?? item.id ?? "tool");
+            const payload = item.result ?? item.output ?? item.content ?? item.text ?? item.data ?? "";
+            const formatted = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+            return `<div><strong>Tool Result (${label}):</strong><pre>${escapeHtml(formatted)}</pre></div>`;
+          }
+          case "json_schema":
+            return `<pre>${escapeHtml(JSON.stringify(item, null, 2))}</pre>`;
+          default:
+            return `<pre>${escapeHtml(JSON.stringify(item, null, 2))}</pre>`;
+        }
+      }).join("");
+    }
+
+    function buildSystemMessage(erddapUrl) {
+      const base = systemPromptInput.value.trim() || defaultSystemPrompt;
+      const suffix = `\nDefault ERDDAP endpoint: ${erddapUrl}. Use MCP tools when data is required. If the user provides a different ERDDAP, follow their instruction.`;
+      return {
+        role: "system",
+        content: [
+          {
+            type: "input_text",
+            text: `${base}${suffix}`
+          }
+        ]
+      };
+    }
+
+    function buildRequestBody() {
+      const apiKey = document.getElementById("api-key").value.trim();
+      
+      if (!apiKey) {
+        throw new Error("OpenAI API key is required. Please enter your API key in the 'OpenAI API Key' field.");
+      }
+
+      const erddapUrl = erddapInput.value.trim() || "https://erddap.maracoos.org/erddap";
+      const mcpUrl = mcpInput.value.trim() || "https://mapapps.oceansmap.com/erddap-mcp";
+      const model = modelInput.value.trim() || "gpt-4.1-mini";
+
+      const request = {
+        model,
+        input: [buildSystemMessage(erddapUrl), ...state.messages],
+        tools: [
+          {
+            type: "mcp",
+            server_label: "erddap-mcp",
+            server_url: mcpUrl,
+            require_approval: "never"
+          }
+        ],
+        metadata: {
+          erddap_url: erddapUrl
+        }
+      };
+
+      return { request, apiKey };
+    }
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? "#d63031" : "#525e75";
+    }
+
+    function handleResponseData(data) {
+      const toolResults = Array.isArray(data?.tool_results) ? data.tool_results : [];
+      const outputs =
+        Array.isArray(data?.output) ? data.output :
+        Array.isArray(data?.content) ? data.content :
+        toolResults;
+
+      let assistantMessages = [];
+
+      outputs.forEach((entry) => {
+        if (!entry) {
+          return;
+        }
+
+        if (entry.type === "message" && entry.message) {
+          assistantMessages.push(entry.message);
+          const formatted = formatContentItems(entry.message.content);
+          renderMessage("assistant", formatted);
+        } else if (entry.type === "tool_result" || entry.type === "tool_use" || entry.type === "tool_call") {
+          const toolContent = entry.content ?? entry.output ?? entry.result ?? entry;
+          const formatted = formatContentItems(Array.isArray(toolContent) ? toolContent : [toolContent]);
+          const title = entry.type.replace(/_/g, " ").toUpperCase();
+          renderToolEvent(title, formatted);
+        } else if (entry.role && entry.content) {
+          assistantMessages.push({ role: entry.role, content: entry.content });
+          const formatted = formatContentItems(entry.content);
+          renderMessage(entry.role === "user" ? "user" : "assistant", formatted);
+        }
+      });
+
+      if (!assistantMessages.length && toolResults.length) {
+        toolResults.forEach((result) => {
+          const formatted = formatContentItems(result.output ?? result.content ?? []);
+          renderToolEvent("TOOL RESULT", formatted);
+        });
+      }
+
+      if (!assistantMessages.length && Array.isArray(data?.messages)) {
+        data.messages.forEach((msg) => {
+          if (!msg || !msg.role || !Array.isArray(msg.content)) {
+            return;
+          }
+
+          const renderedRole = msg.role === "user" ? "user" : "assistant";
+          assistantMessages.push({ role: msg.role, content: msg.content });
+          renderMessage(renderedRole, formatContentItems(msg.content));
+        });
+      }
+
+      if (!assistantMessages.length && typeof data?.output_text === "string") {
+        const assistantMessage = {
+          role: "assistant",
+          content: [{ type: "output_text", text: data.output_text }]
+        };
+        assistantMessages.push(assistantMessage);
+        renderMessage("assistant", formatContentItems(assistantMessage.content));
+      }
+
+      assistantMessages.forEach((msg) => {
+        state.messages.push({ role: msg.role, content: msg.content });
+      });
+    }
+
+    async function sendMessage() {
+      const userText = userInput.value.trim();
+      if (!userText) {
+        return;
+      }
+
+      const userMessage = {
+        role: "user",
+        content: [{ type: "input_text", text: userText }]
+      };
+
+      state.messages.push(userMessage);
+      renderMessage("user", formatContentItems(userMessage.content));
+      userInput.value = "";
+
+      const { request, apiKey } = buildRequestBody();
+
+      setStatus("Sending...");
+      sendButton.disabled = true;
+      formEl.classList.add("busy");
+
+      try {
+        const response = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "OpenAI-Beta": "tools=v1"
+          },
+          body: JSON.stringify({ ...request, temperature: 0.2 })
+        });
+
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => ({}));
+          const message = errorPayload?.error?.message || response.statusText || "Unknown error";
+          throw new Error(message);
+        }
+
+        const data = await response.json();
+        handleResponseData(data);
+        const tokens = data?.usage ? ` | tokens: ${JSON.stringify(data.usage)}` : "";
+        setStatus(`Completed${tokens}`);
+      } catch (error) {
+        renderMessage("assistant", `<div style="color:#d63031;">Error: ${escapeHtml(error.message)}</div>`);
+        setStatus(error.message, true);
+      } finally {
+        sendButton.disabled = false;
+        formEl.classList.remove("busy");
+      }
+    }
+
+    formEl.addEventListener("submit", (event) => {
+      event.preventDefault();
+      sendMessage();
+    });
+
+    clearButton.addEventListener("click", () => {
+      state.messages = [];
+      transcriptEl.innerHTML = "";
+      setStatus("Conversation cleared.");
+    });
+
+    systemPromptInput.placeholder = defaultSystemPrompt;
+  </script>
+</body>
+</html>
+
