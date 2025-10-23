@@ -41,6 +41,18 @@ Then start/restart Claude desktop and ask it to get some data!
 
 See https://modelcontextprotocol.io/quickstart/user
 
+## Transport Options
+
+The server supports both stdio and HTTP transports. By default, it uses stdio:
+
+```bash
+# Stdio transport (default)
+uv run erddap_mcp_demo.py
+
+# Streamable HTTP transport
+uv run erddap_mcp_demo.py --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
 ## Testing
 
 ```

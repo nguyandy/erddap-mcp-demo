@@ -1,11 +1,15 @@
 from datetime import datetime, timezone
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 import httpx
 import urllib.parse
+import argparse
+import warnings
+
+# Suppress SSL warnings when verification is disabled
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 mcp = FastMCP("erddap-tabledap")
-
-http_client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
+http_client = httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False)
 
 
 @mcp.tool()
@@ -146,3 +150,41 @@ async def get_dataset_variable_data(erddap_url: str, dataset_id: str, variable_n
     response = await http_client.get(f"{url}?{urllib.parse.quote(params)}")
     response.raise_for_status()
     return response.text
+
+
+# -------------------------------------------------------------------------
+# ENTRY POINT
+# -------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(description="ERDDAP MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "streamable-http"],
+        default="stdio",
+        help="Transport mode for the MCP server (default: stdio)",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host to bind to for streamable-http transport (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind to for streamable-http transport (default: 8000)",
+    )
+
+    args = parser.parse_args()
+
+    if args.transport == "streamable-http":
+        print(f"Starting MCP server in Streamable HTTP mode on {args.host}:{args.port}")
+        mcp.run(transport="streamable-http", host=args.host, port=args.port)
+    else:
+        print("Starting MCP server in stdio mode")
+        mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
