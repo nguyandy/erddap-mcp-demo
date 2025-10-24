@@ -1,16 +1,20 @@
 FROM python:3.13-slim
 
+ENV PATH="/root/.local/bin:${PATH}" \
+    UV_LINK_MODE=copy
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -LsSf https://astral.sh/uv/install.sh | sh
+
 WORKDIR /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
 
-# Copy application code
-COPY erddap_mcp_demo.py .
+COPY . .
 
-# Expose port 8000
 EXPOSE 8000
 
-# Run the MCP server with streamable-http transport, binding to all interfaces
-CMD ["python", "erddap_mcp_demo.py", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "erddap_mcp_demo.py", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]
