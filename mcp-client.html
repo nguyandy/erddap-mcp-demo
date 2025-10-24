@@ -28,7 +28,7 @@
     main {
       max-width: 900px;
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 20px;
     }
 
     h1 {
@@ -42,7 +42,6 @@
 
     p.description {
       margin-top: 0;
-      margin-bottom: 32px;
       color: #666;
       font-size: 0.95rem;
       line-height: 1.6;
@@ -54,7 +53,7 @@
       border-radius: 8px;
       border: 1px solid #e0e0e0;
       padding: 24px;
-      margin-bottom: 24px;
+      margin-bottom: 12px;
     }
 
     section.panel h2 {
@@ -74,8 +73,9 @@
     }
 
     form#chat-form {
-      display: grid;
-      gap: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
 
     .grid {
@@ -141,15 +141,20 @@
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
+      justify-content: flex-end;
       margin-top: 4px;
+    }
+
+    .button-row .status {
+      margin-right: auto;
+      order: -1;
     }
 
     button {
       border-radius: 6px;
       border: 1px solid var(--primary);
       padding: 10px 24px;
-      font-size: 0.9rem;
-      font-weight: 600;
+      font-size: 0.7rem;
       cursor: pointer;
       transition: all 0.2s ease;
       background: var(--primary);
@@ -193,6 +198,49 @@
       color: #999;
       min-height: 1.2em;
       font-weight: 500;
+    }
+
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chat-composer {
+      border-top: 1px solid #e0e0e0;
+      padding-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-composer textarea {
+      min-height: 100px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .transcript {
@@ -271,6 +319,45 @@
       letter-spacing: 0.5px;
     }
 
+    .loading-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      opacity: 0.4;
+      animation: loading-pulse 1.4s infinite ease-in-out;
+    }
+
+    .loading-dots span:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes loading-pulse {
+      0%, 60%, 100% {
+        opacity: 0.4;
+        transform: scale(0.8);
+      }
+      30% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
     pre {
       background: #f0f0f0;
       padding: 12px;
@@ -287,17 +374,6 @@
       font-size: 0.8rem;
     }
 
-    .tips ul {
-      margin: 0;
-      padding-left: 20px;
-      color: #555;
-      font-size: 0.9rem;
-      line-height: 1.7;
-    }
-
-    .tips li {
-      margin-bottom: 8px;
-    }
 
     @media (max-width: 640px) {
       main {
@@ -329,69 +405,55 @@
   <main>
     <h1>ERDDAP MCP LLM Demo</h1>
     <p class="description">
-      Chat with an OpenAI model that can call the ERDDAP MCP server to explore datasets. Submit a question and the
-      assistant will use ERDDAP tools as needed. Default ERDDAP endpoint is
-      <code>https://erddap.maracoos.org/erddap</code>.
+      Chat with an OpenAI model that can call the ERDDAP MCP server to explore datasets.
     </p>
 
     <section class="panel">
+      <h2 style="margin-top:0;margin-bottom:16px;font-size:1.1rem;font-weight:600;color:var(--primary);">Configuration</h2>
+      <div class="grid" style="margin-bottom:16px;">
+        <label>
+          OpenAI API Key
+          <input id="api-key" type="text" placeholder="sk-..." autocomplete="off" required>
+        </label>
+      </div>
+
+      <div class="grid two">
+        <label>
+          ERDDAP URL
+          <input id="erddap-url" type="text" value="https://erddap.maracoos.org/erddap" autocomplete="off">
+        </label>
+
+        <label>
+          MCP Server URL
+          <input id="mcp-url" type="text" value="https://mapapps.oceansmap.com/erddap-mcp" autocomplete="off">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
       <form id="chat-form">
-        <div class="grid two">
-          <label>
-            OpenAI API Key
-            <input id="api-key" type="password" placeholder="sk-..." autocomplete="off" required>
-          </label>
+        <div class="chat-panel">
+          <div class="chat-header">
+            <h2 style="margin:0;font-size:1.1rem;font-weight:600;color:var(--primary);">Conversation</h2>
+            <button id="clear-button" type="button" class="secondary">Clear Conversation</button>
+          </div>
 
-          <label>
-            OpenAI Model
-            <input id="model" type="text" value="gpt-4.1-mini" autocomplete="off">
-          </label>
-        </div>
+          <div class="chat-container">
+            <div id="transcript" class="transcript" aria-live="polite"></div>
 
-        <div class="grid two">
-          <label>
-            ERDDAP URL
-            <input id="erddap-url" type="text" value="https://erddap.maracoos.org/erddap" autocomplete="off">
-          </label>
-
-          <label>
-            MCP Server URL
-            <input id="mcp-url" type="text" value="https://mapapps.oceansmap.com/erddap-mcp" autocomplete="off">
-          </label>
-        </div>
-
-        <label>
-          System Prompt (optional)
-          <textarea id="system-prompt" placeholder="You are an ERDDAP research assistant..."></textarea>
-        </label>
-
-        <label>
-          User Prompt
-          <textarea id="user-input" placeholder="Ask about datasets, variables, or time ranges..." required></textarea>
-        </label>
-
-        <div class="button-row">
-          <button id="send-button" type="submit">Send</button>
-          <button id="clear-button" type="button" class="secondary">Clear Conversation</button>
-          <span class="status" id="status"></span>
+            <div class="chat-composer">
+              <label class="sr-only" for="user-input">Message</label>
+              <textarea id="user-input" placeholder="Ask about datasets, variables, or time ranges..." required></textarea>
+              <div class="button-row">
+                <span class="status" id="status"></span>
+                <button id="send-button" type="submit">Send</button>
+              </div>
+            </div>
+          </div>
         </div>
       </form>
     </section>
 
-    <section class="panel">
-      <h2 style="margin-top:0;margin-bottom:12px;font-size:1.1rem;font-weight:600;">Transcript</h2>
-      <div id="transcript" class="transcript" aria-live="polite"></div>
-    </section>
-
-    <section class="panel tips">
-      <h3 style="margin-top:0;margin-bottom:10px;font-size:1rem;font-weight:600;">Quick Tips</h3>
-      <ul>
-        <li>The assistant can search datasets, list variables, and fetch data through ERDDAP MCP tools.</li>
-        <li>Set a custom ERDDAP base URL if you want to explore a different ERDDAP instance.</li>
-        <li>When the model references datasets, look for dataset IDs and links in the assistant replies.</li>
-        <li>Use "Clear Conversation" to reset context and start over.</li>
-      </ul>
-    </section>
   </main>
 
   <script>
@@ -399,10 +461,8 @@
 
     const transcriptEl = document.getElementById("transcript");
     const formEl = document.getElementById("chat-form");
-    const modelInput = document.getElementById("model");
     const erddapInput = document.getElementById("erddap-url");
     const mcpInput = document.getElementById("mcp-url");
-    const systemPromptInput = document.getElementById("system-prompt");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
     const clearButton = document.getElementById("clear-button");
@@ -411,6 +471,16 @@
     const state = {
       messages: []
     };
+
+    function updateSendButtonState() {
+      const apiKey = document.getElementById("api-key").value.trim();
+      const userText = userInput.value.trim();
+      sendButton.disabled = !apiKey || !userText;
+      // Clear any error messages when user starts typing
+      if (userText || apiKey) {
+        statusEl.textContent = "";
+      }
+    }
 
     function escapeHtml(value) {
       return value
@@ -435,6 +505,84 @@
       wrapper.innerHTML = `<h4>${title}</h4>${content}`;
       transcriptEl.appendChild(wrapper);
       transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    }
+
+    function createStreamingMessage(role) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `message ${role}`;
+      const contentEl = document.createElement("div");
+      
+      // Show loading animation initially
+      contentEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+      wrapper.appendChild(contentEl);
+      transcriptEl.appendChild(wrapper);
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+
+      let textQueue = [];
+      let animationId = null;
+      let currentText = "";
+      let isLoading = true;
+
+      const removeLoadingDots = () => {
+        if (isLoading) {
+          contentEl.innerHTML = '';
+          isLoading = false;
+        }
+      };
+
+      const animate = () => {
+        if (textQueue.length === 0) {
+          animationId = null;
+          return;
+        }
+
+        const nextChunk = textQueue.shift();
+        currentText += nextChunk;
+        contentEl.textContent = currentText;
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        animationId = requestAnimationFrame(animate);
+      };
+
+      return {
+        appendText(text) {
+          if (!text) return;
+          removeLoadingDots();
+          const chars = text.split('');
+          textQueue.push(...chars);
+          if (animationId === null) {
+            animate();
+          }
+        },
+        setHTML(html) {
+          removeLoadingDots();
+          if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+          }
+          wrapper.innerHTML = html;
+          transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        },
+        finalize() {
+          removeLoadingDots();
+          if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+          }
+          // Flush any remaining text
+          if (textQueue.length > 0) {
+            currentText += textQueue.join('');
+            contentEl.textContent = currentText;
+            textQueue = [];
+          }
+        },
+        remove() {
+          if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+          }
+          wrapper.remove();
+        }
+      };
     }
 
     function formatContentItems(content = []) {
@@ -469,14 +617,14 @@
     }
 
     function buildSystemMessage(erddapUrl) {
-      const base = systemPromptInput.value.trim() || defaultSystemPrompt;
-      const suffix = `\nDefault ERDDAP endpoint: ${erddapUrl}. Use MCP tools when data is required. If the user provides a different ERDDAP, follow their instruction.`;
+      const currentTime = new Date().toISOString();
+      const suffix = `\nCurrent datetime: ${currentTime}\nDefault ERDDAP endpoint: ${erddapUrl}. Use MCP tools when data is required. If the user provides a different ERDDAP, follow their instruction.`;
       return {
         role: "system",
         content: [
           {
             type: "input_text",
-            text: `${base}${suffix}`
+            text: `${defaultSystemPrompt}${suffix}`
           }
         ]
       };
@@ -491,7 +639,7 @@
 
       const erddapUrl = erddapInput.value.trim() || "https://erddap.maracoos.org/erddap";
       const mcpUrl = mcpInput.value.trim() || "https://mapapps.oceansmap.com/erddap-mcp";
-      const model = modelInput.value.trim() || "gpt-4.1-mini";
+      const model = "gpt-4.1-mini";
 
       const request = {
         model,
@@ -586,6 +734,13 @@
         return;
       }
 
+      // Check if API key is provided
+      const apiKey = document.getElementById("api-key").value.trim();
+      if (!apiKey) {
+        setStatus("Please enter your OpenAI API key before sending a message.", true);
+        return;
+      }
+
       const userMessage = {
         role: "user",
         content: [{ type: "input_text", text: userText }]
@@ -595,11 +750,11 @@
       renderMessage("user", formatContentItems(userMessage.content));
       userInput.value = "";
 
-      const { request, apiKey } = buildRequestBody();
+      const { request } = buildRequestBody();
 
-      setStatus("Sending...");
       sendButton.disabled = true;
-      formEl.classList.add("busy");
+
+      let streamingMessage = null;
 
       try {
         const response = await fetch("https://api.openai.com/v1/responses", {
@@ -609,7 +764,7 @@
             "Authorization": `Bearer ${apiKey}`,
             "OpenAI-Beta": "tools=v1"
           },
-          body: JSON.stringify({ ...request, temperature: 0.2 })
+          body: JSON.stringify({ ...request, temperature: 0.2, stream: true })
         });
 
         if (!response.ok) {
@@ -618,16 +773,102 @@
           throw new Error(message);
         }
 
-        const data = await response.json();
-        handleResponseData(data);
-        const tokens = data?.usage ? ` | tokens: ${JSON.stringify(data.usage)}` : "";
-        setStatus(`Completed${tokens}`);
+        const contentType = response.headers.get("content-type");
+        const isStreaming = contentType?.includes("text/event-stream") || contentType?.includes("application/x-ndjson");
+
+        if (!isStreaming) {
+          // Handle non-streaming response
+          const data = await response.json();
+          handleResponseData(data);
+          return;
+        }
+
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let assistantMessages = [];
+        let currentText = "";
+
+        streamingMessage = createStreamingMessage("assistant");
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('data: [DONE]')) continue;
+
+            // Handle stream format
+            const dataLine = trimmed.startsWith('data: ') ? trimmed.substring(6) : trimmed;
+
+            try {
+              const data = JSON.parse(dataLine);
+
+              // Handle different streaming event types
+              if (data.type === "response.output_text.delta" && data.delta) {
+                currentText += data.delta;
+                streamingMessage.appendText(data.delta);
+              } else if (data.type === "response.output_text.done") {
+                streamingMessage.finalize();
+                const assistantMessage = {
+                  role: "assistant",
+                  content: [{ type: "output_text", text: data.text || currentText }]
+                };
+                assistantMessages.push(assistantMessage);
+                state.messages.push(assistantMessage);
+              } else if (data.type === "response.done") {
+                // Response completed
+              } else if (data.choices && data.choices[0]?.delta?.content) {
+                // OpenAI chat completion streaming format
+                const content = data.choices[0].delta.content;
+                currentText += content;
+                streamingMessage.appendText(content);
+              } else if (data.output || data.content) {
+                // Full response in streaming format
+                if (streamingMessage) {
+                  streamingMessage.remove();
+                  streamingMessage = null;
+                }
+                handleResponseData(data);
+              }
+            } catch (e) {
+              console.warn("Failed to parse streaming line:", dataLine, e);
+            }
+          }
+        }
+
+        // If we accumulated text but no done event, finalize it
+        if (streamingMessage && currentText && assistantMessages.length === 0) {
+          streamingMessage.finalize();
+          const assistantMessage = {
+            role: "assistant",
+            content: [{ type: "output_text", text: currentText }]
+          };
+          state.messages.push(assistantMessage);
+        } else if (streamingMessage && assistantMessages.length === 0) {
+          streamingMessage.remove();
+          streamingMessage = null;
+        }
+
+        if (assistantMessages.length === 0 && currentText === "") {
+          setStatus("No response received", true);
+        }
+
       } catch (error) {
+        if (streamingMessage) {
+          streamingMessage.remove();
+        }
         renderMessage("assistant", `<div style="color:#d63031;">Error: ${escapeHtml(error.message)}</div>`);
         setStatus(error.message, true);
       } finally {
         sendButton.disabled = false;
-        formEl.classList.remove("busy");
       }
     }
 
@@ -639,11 +880,41 @@
     clearButton.addEventListener("click", () => {
       state.messages = [];
       transcriptEl.innerHTML = "";
-      setStatus("Conversation cleared.");
+      statusEl.textContent = "";
     });
 
-    systemPromptInput.placeholder = defaultSystemPrompt;
+    // Load saved API key from localStorage
+    const savedApiKey = localStorage.getItem("openai_api_key");
+    if (savedApiKey) {
+      document.getElementById("api-key").value = savedApiKey;
+    }
+
+    // Add event listeners to update send button state
+    const apiKeyInput = document.getElementById("api-key");
+    apiKeyInput.addEventListener("input", () => {
+      updateSendButtonState();
+      // Save API key to localStorage
+      const apiKey = apiKeyInput.value.trim();
+      if (apiKey) {
+        localStorage.setItem("openai_api_key", apiKey);
+      } else {
+        localStorage.removeItem("openai_api_key");
+      }
+    });
+    userInput.addEventListener("input", updateSendButtonState);
+
+    // Add Enter key handler for chat input
+    userInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (!sendButton.disabled) {
+          sendMessage();
+        }
+      }
+    });
+
+    // Initialize button state
+    updateSendButtonState();
   </script>
 </body>
 </html>
-
