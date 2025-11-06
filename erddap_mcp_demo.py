@@ -133,23 +133,76 @@ async def list_dataset_variables(erddap_url: str, dataset_id: str) -> str:
 
 @mcp.tool()
 async def get_dataset_variable_data(erddap_url: str, dataset_id: str, variable_name: str,
-                                    start_time: datetime, end_time: datetime = datetime.now(timezone.utc),
-                                    exclude_nans: bool = True) -> str:
-    """Get data for a variable in a dataset served by an ERDDAP server. Time is always included in the results."""
+                                    start_time: datetime | None = None,
+                                    end_time: datetime | None = datetime.now(timezone.utc),
+                                    exclude_nans: bool = True) -> dict:
+    """Get data for one or more variables in a dataset served by an ERDDAP server, returned as a CSV file payload.
+    
+    The variable_name parameter can be:
+    - A single variable name (e.g., "temperature")
+    - Multiple variables as a comma-separated string (e.g., "temperature,salinity")
+    
+    When multiple variables are provided, all will be returned in the same CSV with a time column.
+    """
+    if not dataset_id:
+        raise ValueError("dataset_id is required")
+    if not variable_name:
+        raise ValueError("variable_name is required")
+
+    # Parse variable names - handle both single string and comma-separated list
+    variable_names = [v.strip() for v in variable_name.split(",")]
+    
     url = f"{erddap_url}/tabledap/{dataset_id}.csvp"
 
-    # TODO assuming time variable is named time here
-    params = f"time,{variable_name}"
+    # Build query with all variables
+    variables_str = ",".join(variable_names)
+    query_parts = [f"time,{variables_str}"]
+    
+    # Add NaN filtering for all variables
     if exclude_nans:
-        params += f"&{variable_name}!=NaN"
-    if start_time:
-        params += f"&time>={start_time}"
-    if end_time:
-        params += f"&time<={end_time}"
+        for var_name in variable_names:
+            query_parts.append(f"{var_name}!=NaN")
 
-    response = await http_client.get(f"{url}?{urllib.parse.quote(params)}")
+    def _normalize_time(dt: datetime | None) -> datetime | None:
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    start_dt = _normalize_time(start_time)
+    end_dt = _normalize_time(end_time)
+
+    if start_dt:
+        query_parts.append(f"time>={start_dt.isoformat()}")
+    if end_dt:
+        query_parts.append(f"time<={end_dt.isoformat()}")
+
+    query = "&".join(query_parts)
+    safe_chars = "&,=:+-T"
+    encoded_query = urllib.parse.quote(query, safe=safe_chars)
+
+    response = await http_client.get(f"{url}?{encoded_query}")
     response.raise_for_status()
-    return response.text
+
+    sanitized_dataset = dataset_id.replace("/", "_")
+    
+    # Generate filename based on number of variables
+    if len(variable_names) == 1:
+        sanitized_variable = variable_names[0].replace("/", "_")
+        filename = f"{sanitized_dataset}_{sanitized_variable}.csv"
+    elif len(variable_names) <= 3:
+        sanitized_vars = "_".join([v.replace("/", "_") for v in variable_names])
+        filename = f"{sanitized_dataset}_{sanitized_vars}.csv"
+    else:
+        filename = f"{sanitized_dataset}_multi_variables.csv"
+
+    return {
+        "type": "file",
+        "mime": "text/csv",
+        "filename": filename,
+        "content": response.text,
+    }
 
 
 # -------------------------------------------------------------------------
