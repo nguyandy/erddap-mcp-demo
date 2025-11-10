@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  erddap-mcp-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: erddap-mcp-chat
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # Set your OpenAI API key here or use a .env file
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MCP_SERVER_URL=${MCP_SERVER_URL:-https://mapapps.oceansmap.com/erddap-mcp}
+    # Uncomment to use .env file
+    # env_file:
+    #   - .env.local
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+
